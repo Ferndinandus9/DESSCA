@@ -166,6 +166,39 @@ SAFE_DIVIDE(SUM(Real_Mes_USD), MAX(Venta_Real_Mes_USD))
 
 Cuando se deja en SUM, Looker puede sumar varias veces el mismo porcentaje agregado y aparecen valores inflados como `3080,51%` en vez de `100,00%`.
 
+
+
+### Corrección definitiva para tu caso (columna fija en 315,12%)
+
+Con la configuración que compartiste, el problema principal no está en la fórmula sino en la propiedad del gráfico:
+
+- **Cálculo acumulativo = Máximo continuo**
+
+Ese ajuste transforma el resultado del campo y termina mostrando un valor casi constante/inflado (como `315,12%`) en varias filas.
+
+#### Cómo dejarlo correcto en Looker Studio
+
+Para la métrica `% Participación Real Mes (USD)` configura:
+
+1. **Fórmula** (puedes mantener la tuya):
+```text
+CASE
+  WHEN SUM(Venta_Real_Mes_USD) = 0 THEN 0
+  ELSE SUM(Real_Mes_USD) / MAX(Venta_Real_Mes_USD)
+END
+```
+2. **Agregación**: `Automática` (o `Promedio`), no `SUM`.
+3. **Cálculo acumulativo**: **Ninguno** (este punto es crítico).
+4. **Cálculo de comparación**: `Ninguna`.
+5. Tipo de dato: `Porcentaje`.
+
+#### Validación esperada
+
+Al aplicar lo anterior:
+- `INGRESOS DE LA EXPLOTACION` debe quedar en ~`100,00%`.
+- Las demás filas deben coincidir con la distribución correcta (ej. `-69,38%`, `30,62%`, `-5,68%`, etc.).
+- El valor no debe repetirse como constante para todas las filas.
+
 ### Resultado esperado
 
 - En la fila `INGRESOS DE LA EXPLOTACION`, el % debe ser ~`100%`.
@@ -192,6 +225,6 @@ En tablas con más detalle (por ejemplo incluyendo `cuenta_contable`), ese enfoq
 
 1. Usa **campos calculados a nivel de fuente** para variaciones y porcentajes, con `SAFE_DIVIDE` (o lógica de divisor ≠ 0).
 2. Define controles por dimensión: división, unidad de negocio, región, agencia y mes.
-3. Para scorecards de cierre, usa `*_Cierre_*` para mostrar un único valor del período.
+3. Para campos de %, revisa siempre que **Cálculo acumulativo = Ninguno** y **Comparación = Ninguna**.
 4. Trabaja en una sola moneda por página (USD o SOL) para evitar mezcla conceptual.
 5. Si el volumen crece, considera materializar esta consulta en una tabla o vista programada en BigQuery para acelerar tiempos.
