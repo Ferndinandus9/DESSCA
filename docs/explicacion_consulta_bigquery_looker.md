@@ -125,28 +125,31 @@ Tu consulta ya trae ese denominador listo en estos campos:
 
 Estos campos se calculan por `division + unidad_de_negocio + region + agencia + anio + mes`, por lo que cuando filtras mes 6 (u otro), el denominador se ajusta al filtro activo.
 
+**Clave:** en la tabla final ese denominador viene repetido en muchas filas (una por cada cuenta/partida). Por eso, si usas `SUM(Venta_Real_Mes_USD)`, inflas el denominador y el % queda artificialmente bajo (ejemplo típico: `2,40%` en vez de `100,00%` para ingresos).
+Usa `MAX(...)` (o `MIN(...)`) para tomar una sola vez el denominador del contexto filtrado.
+
 ### Fórmulas recomendadas en Looker Studio (USD)
 
 **% Participación Real Mes (USD)**
 ```text
-SAFE_DIVIDE(SUM(Real_Mes_USD), SUM(Venta_Real_Mes_USD))
+SAFE_DIVIDE(SUM(Real_Mes_USD), MAX(Venta_Real_Mes_USD))
 ```
 
 **% Participación Ppto Mes (USD)**
 ```text
-SAFE_DIVIDE(SUM(Ppto_Mes_USD), SUM(Venta_Ppto_Mes_USD))
+SAFE_DIVIDE(SUM(Ppto_Mes_USD), MAX(Venta_Ppto_Mes_USD))
 ```
 
 ### Fórmulas recomendadas en Looker Studio (SOL)
 
 **% Participación Real Mes (SOL)**
 ```text
-SAFE_DIVIDE(SUM(Real_Mes_SOL), SUM(Venta_Real_Mes_SOL))
+SAFE_DIVIDE(SUM(Real_Mes_SOL), MAX(Venta_Real_Mes_SOL))
 ```
 
 **% Participación Ppto Mes (SOL)**
 ```text
-SAFE_DIVIDE(SUM(Ppto_Mes_SOL), SUM(Venta_Ppto_Mes_SOL))
+SAFE_DIVIDE(SUM(Ppto_Mes_SOL), MAX(Venta_Ppto_Mes_SOL))
 ```
 
 ### Resultado esperado
@@ -162,7 +165,7 @@ No uses un cálculo sin agregación explícita como:
 Real_Mes_USD / Venta_Real_Mes_USD
 ```
 
-En tablas con más detalle (por ejemplo incluyendo `cuenta_contable`), ese enfoque puede terminar en agregaciones inconsistentes. Siempre usa **ratio de sumas** con `SUM(...)`.
+En tablas con más detalle (por ejemplo incluyendo `cuenta_contable`), ese enfoque puede terminar en agregaciones inconsistentes. Usa **SUM(...)** en el numerador y **MAX(...)** (o `MIN(...)`) en el denominador de ventas preagregado.
 
 ### Configuración sugerida de la tabla
 
