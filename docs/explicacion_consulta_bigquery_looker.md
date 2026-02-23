@@ -152,6 +152,20 @@ SAFE_DIVIDE(SUM(Real_Mes_SOL), MAX(Venta_Real_Mes_SOL))
 SAFE_DIVIDE(SUM(Ppto_Mes_SOL), MAX(Venta_Ppto_Mes_SOL))
 ```
 
+
+
+### Ajuste clave en Looker Studio (evita el 3080% y similares)
+
+Si la fórmula ya usa agregaciones (`SUM`, `MAX`, `SAFE_DIVIDE`), **no vuelvas a agregar ese campo como SUM en la tabla**.
+
+- Campo calculado recomendado:
+```text
+SAFE_DIVIDE(SUM(Real_Mes_USD), MAX(Venta_Real_Mes_USD))
+```
+- En la métrica del gráfico, configura agregación de `% Participación` como **Auto** (o **Promedio**), **no SUM**.
+
+Cuando se deja en SUM, Looker puede sumar varias veces el mismo porcentaje agregado y aparecen valores inflados como `3080,51%` en vez de `100,00%`.
+
 ### Resultado esperado
 
 - En la fila `INGRESOS DE LA EXPLOTACION`, el % debe ser ~`100%`.
@@ -171,7 +185,7 @@ En tablas con más detalle (por ejemplo incluyendo `cuenta_contable`), ese enfoq
 
 - Dimensiones: `partida_general` (y opcionalmente `partida_analitica`, `cuenta_contable`).
 - Métricas base: `SUM(Ppto_Mes_USD)`, `SUM(Real_Mes_USD)` y `VAR = SUM(Real_Mes_USD) - SUM(Ppto_Mes_USD)`.
-- Métricas de %: usar las fórmulas de participación anteriores.
+- Métricas de %: usar las fórmulas de participación anteriores y dejar su agregación como **Auto** (o **Promedio**), no **SUM**.
 - Orden: `orden_partida` para mantener la secuencia P&L.
 
 ## Recomendaciones prácticas para Looker Studio Free
