@@ -199,9 +199,52 @@ Al aplicar lo anterior:
 - Las demás filas deben coincidir con la distribución correcta (ej. `-69,38%`, `30,62%`, `-5,68%`, etc.).
 - El valor no debe repetirse como constante para todas las filas.
 
+
+
+### Diagnóstico real del error que aún ves (315,12% con configuración aparentemente correcta)
+
+Si ya tienes:
+- fórmula con `SUM(Real_Mes_USD) / MAX(Venta_Real_Mes_USD)`
+- agregación `Automática`
+- cálculo acumulativo `Ninguno`
+
+y todavía sale mal, la causa suele ser esta:
+
+**La tabla está agregando varias combinaciones internas (por ejemplo varias `agencia`) que no están como dimensión visible, y `MAX(Venta_Real_Mes_USD)` solo toma una de ellas.**
+
+Entonces el numerador suma varias agencias, pero el denominador toma solo la mayor agencia:
+- Numerador: `SUM(Real_Mes_USD)` de varias agencias.
+- Denominador: `MAX(Venta_Real_Mes_USD)` de una sola agencia.
+- Resultado: % inflado (como `315,12%`).
+
+### Solución recomendada (robusta)
+
+Construir el denominador en una **fuente separada** (o vista BigQuery separada) agregada al nivel de filtros de negocio:
+- `anio, mes, division, unidad_de_negocio, region, agencia` (o el nivel que usarás en controles)
+- y unirla por esas dimensiones al dataset principal.
+
+En el gráfico, usa:
+```text
+SAFE_DIVIDE(SUM(Real_Mes_USD), SUM(Venta_Real_Mes_USD_Denom))
+```
+
+donde `Venta_Real_Mes_USD_Denom` viene de esa fuente separada (una sola fila por combinación de filtros), no repetida por `partida_general/partida_analitica/cuenta_contable`.
+
+### Solución rápida (si no harás blend/vista separada)
+
+Para que la métrica no se infle con `MAX(...)`, debes forzar que los filtros de negocio queden en **un solo valor** por dimensión clave (especialmente `agencia`, además de división/UN/región/mes).
+
+Si hay multiselección en esas dimensiones y la tabla no las muestra, el `%` volverá a distorsionarse.
+
+### Alternativas adicionales
+
+1. **Tabla a nivel de agencia**: agrega `agencia` como dimensión visible. Ahí `MAX(Venta_Real_Mes_USD)` sí representa correctamente esa fila.
+2. **Métrica precomputada en BigQuery** para cada grano de reporte (por ejemplo, una vista para tabla de `partida_general` y otra para `partida_analitica`).
+3. **Páginas separadas por nivel de análisis** (P&L general vs detalle de cuenta), cada una con su denominador modelado al grano correcto.
+
 ### Resultado esperado
 
-- En la fila `INGRESOS DE LA EXPLOTACION`, el % debe ser ~`100%`.
+- En la fila `INGRESOS DE LA EXPLOTACION`, el % debe ser ~`100%` cuando el denominador está modelado al mismo grano de agregación del gráfico.
 - En `COSTO VARIABLE`, `MARGEN BRUTO`, `EBITDA`, etc., el % refleja su participación del mismo mes contra ventas del mes.
 - Si un rubro es negativo, el % será negativo (esto es correcto financieramente).
 
