@@ -286,3 +286,16 @@ Para evitarlo, la vista simplificada ahora expone campos ya calculados por fila:
 Estos campos dividen cada partida entre el denominador de ventas del mismo contexto de filtros
 (`anio, mes, division, unidad_de_negocio, region, agencia`) con fallback sin agencia.
 
+## Ajuste de consistencia de % cuando agregas varias agencias
+
+Se densificó la base mensual por `partida_general` para cada combinación de
+`division, unidad_de_negocio, region, agencia, anio, mes`.
+Con esto, aunque una partida no tenga movimiento en una agencia, se conserva la fila en 0,
+y el denominador de ventas queda consistente al calcular:
+
+```text
+SAFE_DIVIDE(SUM(Ppto_Mes_USD), SUM(Venta_Ppto_Mes_USD_Denom))
+```
+
+Este era el origen de la diferencia entre montos correctos y porcentajes distorsionados.
+

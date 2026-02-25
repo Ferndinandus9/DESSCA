@@ -202,31 +202,65 @@ ppto_anual AS (
 ),
 
 -- -----------------------------
--- 6) REAL + PPTO mes (sin densificación completa)
+-- 6) REAL + PPTO mes (densificada por partida_general)
+--    Esto evita que el denominador cambie por fila al agrupar en Looker.
 -- -----------------------------
+partidas_catalogo AS (
+  SELECT DISTINCT partida_general FROM real_pg
+  UNION DISTINCT
+  SELECT DISTINCT partida_general FROM ppto_pg
+),
+
+dim_mes AS (
+  SELECT DISTINCT division, unidad_de_negocio, region, agencia, anio, mes FROM real_pg
+  UNION DISTINCT
+  SELECT DISTINCT division, unidad_de_negocio, region, agencia, anio, mes FROM ppto_pg
+),
+
+base_densificada AS (
+  SELECT
+    pc.partida_general,
+    dm.division,
+    dm.unidad_de_negocio,
+    dm.region,
+    dm.agencia,
+    dm.anio,
+    dm.mes
+  FROM dim_mes dm
+  CROSS JOIN partidas_catalogo pc
+),
+
 merged_mes AS (
   SELECT
-    COALESCE(r.partida_general, p.partida_general) AS partida_general,
-    COALESCE(r.division, p.division) AS division,
-    COALESCE(r.unidad_de_negocio, p.unidad_de_negocio) AS unidad_de_negocio,
-    COALESCE(r.region, p.region) AS region,
-    COALESCE(r.agencia, p.agencia) AS agencia,
-    COALESCE(r.anio, p.anio) AS anio,
-    COALESCE(r.mes, p.mes) AS mes,
-    DATE(COALESCE(r.anio, p.anio), COALESCE(r.mes, p.mes), 1) AS periodo_mes,
+    bd.partida_general,
+    bd.division,
+    bd.unidad_de_negocio,
+    bd.region,
+    bd.agencia,
+    bd.anio,
+    bd.mes,
+    DATE(bd.anio, bd.mes, 1) AS periodo_mes,
     IFNULL(r.real_mes_usd, 0) AS real_mes_usd,
     IFNULL(r.real_mes_sol, 0) AS real_mes_sol,
     IFNULL(p.ppto_mes_usd, 0) AS ppto_mes_usd,
     IFNULL(p.ppto_mes_sol, 0) AS ppto_mes_sol
-  FROM real_pg r
-  FULL OUTER JOIN ppto_pg p
-    ON  p.partida_general   = r.partida_general
-    AND p.division          = r.division
-    AND p.unidad_de_negocio = r.unidad_de_negocio
-    AND p.region            = r.region
-    AND p.agencia           = r.agencia
-    AND p.anio              = r.anio
-    AND p.mes               = r.mes
+  FROM base_densificada bd
+  LEFT JOIN real_pg r
+    ON  r.partida_general   = bd.partida_general
+    AND r.division          = bd.division
+    AND r.unidad_de_negocio = bd.unidad_de_negocio
+    AND r.region            = bd.region
+    AND r.agencia           = bd.agencia
+    AND r.anio              = bd.anio
+    AND r.mes               = bd.mes
+  LEFT JOIN ppto_pg p
+    ON  p.partida_general   = bd.partida_general
+    AND p.division          = bd.division
+    AND p.unidad_de_negocio = bd.unidad_de_negocio
+    AND p.region            = bd.region
+    AND p.agencia           = bd.agencia
+    AND p.anio              = bd.anio
+    AND p.mes               = bd.mes
 ),
 
 -- denominadores ventas al grano exacto
