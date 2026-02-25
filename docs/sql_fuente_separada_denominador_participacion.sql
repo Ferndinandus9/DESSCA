@@ -317,7 +317,25 @@ SELECT
   COALESCE(vd.venta_real_mes_usd, vds.venta_real_mes_usd_sa) AS Venta_Real_Mes_USD_Denom,
   COALESCE(vd.venta_ppto_mes_usd, vds.venta_ppto_mes_usd_sa) AS Venta_Ppto_Mes_USD_Denom,
   COALESCE(vd.venta_real_mes_sol, vds.venta_real_mes_sol_sa) AS Venta_Real_Mes_SOL_Denom,
-  COALESCE(vd.venta_ppto_mes_sol, vds.venta_ppto_mes_sol_sa) AS Venta_Ppto_Mes_SOL_Denom
+  COALESCE(vd.venta_ppto_mes_sol, vds.venta_ppto_mes_sol_sa) AS Venta_Ppto_Mes_SOL_Denom,
+
+  -- % contra Ingresos de la Explotación (ya listo para Looker, evita CASE que deja NULL por fila)
+  SAFE_DIVIDE(
+    m.ppto_mes_usd,
+    NULLIF(COALESCE(vd.venta_ppto_mes_usd, vds.venta_ppto_mes_usd_sa), 0)
+  ) AS Pct_Ppto_vs_IOS_Mes_USD,
+  SAFE_DIVIDE(
+    m.real_mes_usd,
+    NULLIF(COALESCE(vd.venta_real_mes_usd, vds.venta_real_mes_usd_sa), 0)
+  ) AS Pct_Real_vs_IOS_Mes_USD,
+  SAFE_DIVIDE(
+    m.ppto_mes_sol,
+    NULLIF(COALESCE(vd.venta_ppto_mes_sol, vds.venta_ppto_mes_sol_sa), 0)
+  ) AS Pct_Ppto_vs_IOS_Mes_SOL,
+  SAFE_DIVIDE(
+    m.real_mes_sol,
+    NULLIF(COALESCE(vd.venta_real_mes_sol, vds.venta_real_mes_sol_sa), 0)
+  ) AS Pct_Real_vs_IOS_Mes_SOL
 
 FROM merged_mes m
 LEFT JOIN ppto_anual pa

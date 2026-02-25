@@ -271,3 +271,18 @@ En tablas con más detalle (por ejemplo incluyendo `cuenta_contable`), ese enfoq
 3. Para campos de %, revisa siempre que **Cálculo acumulativo = Ninguno** y **Comparación = Ninguna**.
 4. Trabaja en una sola moneda por página (USD o SOL) para evitar mezcla conceptual.
 5. Si el volumen crece, considera materializar esta consulta en una tabla o vista programada en BigQuery para acelerar tiempos.
+
+## Ajuste para evitar `NULL` en `% PPTO IOS` / `% REAL IOS`
+
+Si en Looker construyes el campo con un `CASE` que solo devuelve valor para `INGRESOS DE LA EXPLOTACION`,
+las demás partidas quedarán en `NULL` (tal como en tu captura).
+
+Para evitarlo, la vista simplificada ahora expone campos ya calculados por fila:
+- `Pct_Ppto_vs_IOS_Mes_USD`
+- `Pct_Real_vs_IOS_Mes_USD`
+- `Pct_Ppto_vs_IOS_Mes_SOL`
+- `Pct_Real_vs_IOS_Mes_SOL`
+
+Estos campos dividen cada partida entre el denominador de ventas del mismo contexto de filtros
+(`anio, mes, division, unidad_de_negocio, region, agencia`) con fallback sin agencia.
+
