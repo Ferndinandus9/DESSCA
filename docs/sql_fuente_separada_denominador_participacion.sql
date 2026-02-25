@@ -1,5 +1,5 @@
 -- ==========================================================
--- CONSULTA SIMPLIFICADA (2026 / Opt_26)
+-- CONSULTA SIMPLIFICADA (2026 / Opt_26) - SOLO USD
 -- Nivel: PARTIDA_GENERAL + dimensiones mandatorias
 -- Objetivo: reducir volumen para Looker Studio
 -- ==========================================================
@@ -23,8 +23,7 @@ base_sofia_pg AS (
     IFNULL(NULLIF(TRIM(Agencia), ''), '*') AS agencia,
     SAFE_CAST(Anio AS INT64) AS anio,
     SAFE_CAST(Mes  AS INT64) AS mes,
-    SUM(DistribuidoD) AS real_mes_usd,
-    SUM(Distribuido)  AS real_mes_sol
+    SUM(DistribuidoD) AS real_mes_usd
   FROM `data-warehouse-445921.pruebas_tpp.sofia_autom_completo`
   WHERE Anio = 2026
   GROUP BY 1,2,3,4,5,6,7
@@ -55,8 +54,7 @@ base_ppto_pg AS (
       WHEN 'OCTUBRE'    THEN 10 WHEN 'NOVIEMBRE'  THEN 11
       WHEN 'DICIEMBRE'  THEN 12
     END AS mes,
-    SUM(monto_dolares) AS ppto_mes_usd,
-    SUM(monto_soles)   AS ppto_mes_sol
+    SUM(monto_dolares) AS ppto_mes_usd
   FROM `data-warehouse-445921.pruebas_tpp.ppto_completo`
   WHERE anio = 2026
     AND version_ppto = 'Opt_26'
@@ -68,7 +66,7 @@ base_ppto_pg AS (
 -- -----------------------------
 r_mc AS (
   SELECT 'MARGEN DE CONTRIBUCION' AS partida_general, division, unidad_de_negocio, region, agencia, anio, mes,
-         SUM(real_mes_usd) AS real_mes_usd, SUM(real_mes_sol) AS real_mes_sol
+         SUM(real_mes_usd) AS real_mes_usd
   FROM base_sofia_pg
   WHERE partida_general IN ('INGRESOS DE LA EXPLOTACION','COSTO VARIABLE')
   GROUP BY 2,3,4,5,6,7
@@ -77,7 +75,7 @@ r_base1 AS (SELECT * FROM base_sofia_pg UNION ALL SELECT * FROM r_mc),
 
 r_mb AS (
   SELECT 'MARGEN BRUTO' AS partida_general, division, unidad_de_negocio, region, agencia, anio, mes,
-         SUM(real_mes_usd) AS real_mes_usd, SUM(real_mes_sol) AS real_mes_sol
+         SUM(real_mes_usd) AS real_mes_usd
   FROM r_base1
   WHERE partida_general IN ('MARGEN DE CONTRIBUCION','COSTO FIJO')
   GROUP BY 2,3,4,5,6,7
@@ -86,7 +84,7 @@ r_base2 AS (SELECT * FROM r_base1 UNION ALL SELECT * FROM r_mb),
 
 r_m1 AS (
   SELECT 'M1' AS partida_general, division, unidad_de_negocio, region, agencia, anio, mes,
-         SUM(real_mes_usd) AS real_mes_usd, SUM(real_mes_sol) AS real_mes_sol
+         SUM(real_mes_usd) AS real_mes_usd
   FROM r_base2
   WHERE partida_general IN ('MARGEN BRUTO','GASTOS CON EL PERSONAL FIJO','GASTOS CON EL PERSONAL VARIABLE','GASTOS CON EL PERSONAL OTROS')
   GROUP BY 2,3,4,5,6,7
@@ -95,7 +93,7 @@ r_base3 AS (SELECT * FROM r_base2 UNION ALL SELECT * FROM r_m1),
 
 r_ebitda AS (
   SELECT 'EBITDA' AS partida_general, division, unidad_de_negocio, region, agencia, anio, mes,
-         SUM(real_mes_usd) AS real_mes_usd, SUM(real_mes_sol) AS real_mes_sol
+         SUM(real_mes_usd) AS real_mes_usd
   FROM r_base3
   WHERE partida_general IN ('M1','GASTOS INDIRECTOS')
   GROUP BY 2,3,4,5,6,7
@@ -104,7 +102,7 @@ r_base4 AS (SELECT * FROM r_base3 UNION ALL SELECT * FROM r_ebitda),
 
 r_m2 AS (
   SELECT 'M2' AS partida_general, division, unidad_de_negocio, region, agencia, anio, mes,
-         SUM(real_mes_usd) AS real_mes_usd, SUM(real_mes_sol) AS real_mes_sol
+         SUM(real_mes_usd) AS real_mes_usd
   FROM r_base4
   WHERE partida_general IN ('EBITDA','GASTOS POR AMORT. Y DEPREC.')
   GROUP BY 2,3,4,5,6,7
@@ -113,7 +111,7 @@ r_base5 AS (SELECT * FROM r_base4 UNION ALL SELECT * FROM r_m2),
 
 r_rai AS (
   SELECT 'RESULTADOS ANTES DE IMPUESTOS' AS partida_general, division, unidad_de_negocio, region, agencia, anio, mes,
-         SUM(real_mes_usd) AS real_mes_usd, SUM(real_mes_sol) AS real_mes_sol
+         SUM(real_mes_usd) AS real_mes_usd
   FROM r_base5
   WHERE partida_general IN (
     'INGRESOS DE LA EXPLOTACION','COSTO VARIABLE','COSTO FIJO','GASTOS CON EL PERSONAL FIJO',
@@ -131,7 +129,7 @@ real_pg AS (
 -- -----------------------------
 p_mc AS (
   SELECT 'MARGEN DE CONTRIBUCION' AS partida_general, division, unidad_de_negocio, region, agencia, anio, mes,
-         SUM(ppto_mes_usd) AS ppto_mes_usd, SUM(ppto_mes_sol) AS ppto_mes_sol
+         SUM(ppto_mes_usd) AS ppto_mes_usd
   FROM base_ppto_pg
   WHERE partida_general IN ('INGRESOS DE LA EXPLOTACION','COSTO VARIABLE')
   GROUP BY 2,3,4,5,6,7
@@ -140,7 +138,7 @@ p_base1 AS (SELECT * FROM base_ppto_pg UNION ALL SELECT * FROM p_mc),
 
 p_mb AS (
   SELECT 'MARGEN BRUTO' AS partida_general, division, unidad_de_negocio, region, agencia, anio, mes,
-         SUM(ppto_mes_usd) AS ppto_mes_usd, SUM(ppto_mes_sol) AS ppto_mes_sol
+         SUM(ppto_mes_usd) AS ppto_mes_usd
   FROM p_base1
   WHERE partida_general IN ('MARGEN DE CONTRIBUCION','COSTO FIJO')
   GROUP BY 2,3,4,5,6,7
@@ -149,7 +147,7 @@ p_base2 AS (SELECT * FROM p_base1 UNION ALL SELECT * FROM p_mb),
 
 p_m1 AS (
   SELECT 'M1' AS partida_general, division, unidad_de_negocio, region, agencia, anio, mes,
-         SUM(ppto_mes_usd) AS ppto_mes_usd, SUM(ppto_mes_sol) AS ppto_mes_sol
+         SUM(ppto_mes_usd) AS ppto_mes_usd
   FROM p_base2
   WHERE partida_general IN ('MARGEN BRUTO','GASTOS CON EL PERSONAL FIJO','GASTOS CON EL PERSONAL VARIABLE','GASTOS CON EL PERSONAL OTROS')
   GROUP BY 2,3,4,5,6,7
@@ -158,7 +156,7 @@ p_base3 AS (SELECT * FROM p_base2 UNION ALL SELECT * FROM p_m1),
 
 p_ebitda AS (
   SELECT 'EBITDA' AS partida_general, division, unidad_de_negocio, region, agencia, anio, mes,
-         SUM(ppto_mes_usd) AS ppto_mes_usd, SUM(ppto_mes_sol) AS ppto_mes_sol
+         SUM(ppto_mes_usd) AS ppto_mes_usd
   FROM p_base3
   WHERE partida_general IN ('M1','GASTOS INDIRECTOS')
   GROUP BY 2,3,4,5,6,7
@@ -167,7 +165,7 @@ p_base4 AS (SELECT * FROM p_base3 UNION ALL SELECT * FROM p_ebitda),
 
 p_m2 AS (
   SELECT 'M2' AS partida_general, division, unidad_de_negocio, region, agencia, anio, mes,
-         SUM(ppto_mes_usd) AS ppto_mes_usd, SUM(ppto_mes_sol) AS ppto_mes_sol
+         SUM(ppto_mes_usd) AS ppto_mes_usd
   FROM p_base4
   WHERE partida_general IN ('EBITDA','GASTOS POR AMORT. Y DEPREC.')
   GROUP BY 2,3,4,5,6,7
@@ -176,7 +174,7 @@ p_base5 AS (SELECT * FROM p_base4 UNION ALL SELECT * FROM p_m2),
 
 p_rai AS (
   SELECT 'RESULTADOS ANTES DE IMPUESTOS' AS partida_general, division, unidad_de_negocio, region, agencia, anio, mes,
-         SUM(ppto_mes_usd) AS ppto_mes_usd, SUM(ppto_mes_sol) AS ppto_mes_sol
+         SUM(ppto_mes_usd) AS ppto_mes_usd
   FROM p_base5
   WHERE partida_general IN (
     'INGRESOS DE LA EXPLOTACION','COSTO VARIABLE','COSTO FIJO','GASTOS CON EL PERSONAL FIJO',
@@ -195,8 +193,7 @@ ppto_pg AS (
 ppto_anual AS (
   SELECT
     partida_general, division, unidad_de_negocio, region, agencia, anio,
-    SUM(ppto_mes_usd) AS ppto_anual_usd,
-    SUM(ppto_mes_sol) AS ppto_anual_sol
+    SUM(ppto_mes_usd) AS ppto_anual_usd
   FROM ppto_pg
   GROUP BY 1,2,3,4,5,6
 ),
@@ -241,9 +238,7 @@ merged_mes AS (
     bd.mes,
     DATE(bd.anio, bd.mes, 1) AS periodo_mes,
     IFNULL(r.real_mes_usd, 0) AS real_mes_usd,
-    IFNULL(r.real_mes_sol, 0) AS real_mes_sol,
-    IFNULL(p.ppto_mes_usd, 0) AS ppto_mes_usd,
-    IFNULL(p.ppto_mes_sol, 0) AS ppto_mes_sol
+    IFNULL(p.ppto_mes_usd, 0) AS ppto_mes_usd
   FROM base_densificada bd
   LEFT JOIN real_pg r
     ON  r.partida_general   = bd.partida_general
@@ -268,9 +263,7 @@ venta_denom AS (
   SELECT
     anio, mes, division, unidad_de_negocio, region, agencia,
     SUM(real_mes_usd) AS venta_real_mes_usd,
-    SUM(real_mes_sol) AS venta_real_mes_sol,
-    SUM(ppto_mes_usd) AS venta_ppto_mes_usd,
-    SUM(ppto_mes_sol) AS venta_ppto_mes_sol
+    SUM(ppto_mes_usd) AS venta_ppto_mes_usd
   FROM merged_mes
   WHERE partida_general = 'INGRESOS DE LA EXPLOTACION'
   GROUP BY 1,2,3,4,5,6
@@ -281,9 +274,7 @@ venta_denom_sa AS (
   SELECT
     anio, mes, division, unidad_de_negocio, region,
     SUM(real_mes_usd) AS venta_real_mes_usd_sa,
-    SUM(real_mes_sol) AS venta_real_mes_sol_sa,
-    SUM(ppto_mes_usd) AS venta_ppto_mes_usd_sa,
-    SUM(ppto_mes_sol) AS venta_ppto_mes_sol_sa
+    SUM(ppto_mes_usd) AS venta_ppto_mes_usd_sa
   FROM merged_mes
   WHERE partida_general = 'INGRESOS DE LA EXPLOTACION'
   GROUP BY 1,2,3,4,5
@@ -305,10 +296,6 @@ SELECT
   m.real_mes_usd AS Real_Mes_USD,
   m.real_mes_usd - m.ppto_mes_usd AS Var_Mes_USD,
 
-  m.ppto_mes_sol AS Ppto_Mes_SOL,
-  m.real_mes_sol AS Real_Mes_SOL,
-  m.real_mes_sol - m.ppto_mes_sol AS Var_Mes_SOL,
-
   SUM(m.real_mes_usd) OVER (
     PARTITION BY m.partida_general, m.division, m.unidad_de_negocio, m.region, m.agencia, m.anio
     ORDER BY m.mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
@@ -319,18 +306,7 @@ SELECT
     ORDER BY m.mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
   ) AS Ppto_YTD_USD,
 
-  SUM(m.real_mes_sol) OVER (
-    PARTITION BY m.partida_general, m.division, m.unidad_de_negocio, m.region, m.agencia, m.anio
-    ORDER BY m.mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-  ) AS Real_YTD_SOL,
-
-  SUM(m.ppto_mes_sol) OVER (
-    PARTITION BY m.partida_general, m.division, m.unidad_de_negocio, m.region, m.agencia, m.anio
-    ORDER BY m.mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-  ) AS Ppto_YTD_SOL,
-
   IFNULL(pa.ppto_anual_usd, 0) AS Ppto_Anual_USD,
-  IFNULL(pa.ppto_anual_sol, 0) AS Ppto_Anual_SOL,
 
   SAFE_DIVIDE(
     SUM(m.real_mes_usd) OVER (
@@ -350,10 +326,7 @@ SELECT
 
   COALESCE(vd.venta_real_mes_usd, vds.venta_real_mes_usd_sa) AS Venta_Real_Mes_USD_Denom,
   COALESCE(vd.venta_ppto_mes_usd, vds.venta_ppto_mes_usd_sa) AS Venta_Ppto_Mes_USD_Denom,
-  COALESCE(vd.venta_real_mes_sol, vds.venta_real_mes_sol_sa) AS Venta_Real_Mes_SOL_Denom,
-  COALESCE(vd.venta_ppto_mes_sol, vds.venta_ppto_mes_sol_sa) AS Venta_Ppto_Mes_SOL_Denom,
 
-  -- % contra Ingresos de la Explotación (ya listo para Looker, evita CASE que deja NULL por fila)
   SAFE_DIVIDE(
     m.ppto_mes_usd,
     NULLIF(COALESCE(vd.venta_ppto_mes_usd, vds.venta_ppto_mes_usd_sa), 0)
@@ -361,15 +334,7 @@ SELECT
   SAFE_DIVIDE(
     m.real_mes_usd,
     NULLIF(COALESCE(vd.venta_real_mes_usd, vds.venta_real_mes_usd_sa), 0)
-  ) AS Pct_Real_vs_IOS_Mes_USD,
-  SAFE_DIVIDE(
-    m.ppto_mes_sol,
-    NULLIF(COALESCE(vd.venta_ppto_mes_sol, vds.venta_ppto_mes_sol_sa), 0)
-  ) AS Pct_Ppto_vs_IOS_Mes_SOL,
-  SAFE_DIVIDE(
-    m.real_mes_sol,
-    NULLIF(COALESCE(vd.venta_real_mes_sol, vds.venta_real_mes_sol_sa), 0)
-  ) AS Pct_Real_vs_IOS_Mes_SOL
+  ) AS Pct_Real_vs_IOS_Mes_USD
 
 FROM merged_mes m
 LEFT JOIN ppto_anual pa

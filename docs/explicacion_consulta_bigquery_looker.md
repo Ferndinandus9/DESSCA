@@ -299,3 +299,12 @@ SAFE_DIVIDE(SUM(Ppto_Mes_USD), SUM(Venta_Ppto_Mes_USD_Denom))
 
 Este era el origen de la diferencia entre montos correctos y porcentajes distorsionados.
 
+## Optimización aplicada: vista solo USD
+
+Para reducir carga en Looker Studio, la vista `vw_pl_reporte_pg_simple_2026` quedó en **solo USD**.
+Se retiraron del SQL los campos y cálculos en SOL (mensual, YTD, anual, denominadores y %),
+con lo cual baja el número de columnas y operaciones ventana que el conector debe procesar.
+
+Esto ayuda a disminuir errores de recursos, aunque si el volumen por filtros sigue alto,
+la recomendación adicional es materializar la vista en tabla y consultar esa tabla en Looker.
+
