@@ -528,12 +528,78 @@ SELECT
 FROM `data-warehouse-445921.pruebas_tpp.vw_pl_base_reporte` b
 GROUP BY 1,2,3,4,5,6,7,8,9,10,11;
 
+
+
+-- ==========================================================
+-- VISTA 6 (LITE PARA LOOKER - P&L GENERAL)
+-- Reduce columnas y volumen para evitar límites de recursos.
+-- ==========================================================
+CREATE OR REPLACE VIEW `data-warehouse-445921.pruebas_tpp.vw_pl_reporte_pg_lite` AS
+SELECT
+  partida_general,
+  division,
+  unidad_de_negocio,
+  region,
+  agencia,
+  anio,
+  mes,
+  periodo_mes,
+  Ppto_Mes_USD,
+  Real_Mes_USD,
+  Ppto_YTD_USD,
+  Real_YTD_USD,
+  Ppto_Anual_USD,
+  Avance_Real_vs_Ppto_Anual_USD,
+  Avance_Ppto_vs_Ppto_Anual_USD,
+  Venta_Ppto_Mes_USD_Denom,
+  Venta_Real_Mes_USD_Denom,
+  Venta_Ppto_YTD_USD_Denom,
+  Venta_Real_YTD_USD_Denom
+FROM `data-warehouse-445921.pruebas_tpp.vw_pl_reporte_pg`;
+
+-- ==========================================================
+-- VISTA 7 (LITE PARA LOOKER - DETALLE)
+-- Para partida_analitica/cuenta_contable sin porcentajes.
+-- ==========================================================
+CREATE OR REPLACE VIEW `data-warehouse-445921.pruebas_tpp.vw_pl_reporte_detalle_lite` AS
+SELECT
+  partida_general,
+  partida_analitica,
+  cuenta_contable,
+  division,
+  unidad_de_negocio,
+  region,
+  agencia,
+  anio,
+  mes,
+  periodo_mes,
+  Ppto_Mes_USD,
+  Real_Mes_USD,
+  Var_Mes_USD,
+  Ppto_YTD_USD,
+  Real_YTD_USD,
+  Var_YTD_USD,
+  Ppto_Anual_USD,
+  Gap_Real_YTD_vs_Ppto_Anual_USD
+FROM `data-warehouse-445921.pruebas_tpp.vw_pl_reporte_detalle`;
+
+-- ==========================================================
+-- OPCIÓN RECOMENDADA DE PERFORMANCE
+-- Materializa en tablas (scheduled query) y conecta esas tablas a Looker.
+-- ==========================================================
+-- CREATE OR REPLACE TABLE `data-warehouse-445921.pruebas_tpp.tb_pl_reporte_pg_lite` AS
+-- SELECT * FROM `data-warehouse-445921.pruebas_tpp.vw_pl_reporte_pg_lite`;
+--
+-- CREATE OR REPLACE TABLE `data-warehouse-445921.pruebas_tpp.tb_pl_reporte_detalle_lite` AS
+-- SELECT * FROM `data-warehouse-445921.pruebas_tpp.vw_pl_reporte_detalle_lite`;
+
 -- ==========================================================
 -- USO EN LOOKER STUDIO (campo calculado)
 -- ==========================================================
 -- Uso recomendado de vistas:
--- 1) `vw_pl_reporte_pg`: vista agregada para P&L por partida_general y % participación.
--- 2) `vw_pl_reporte_detalle`: vista para comparativos por partida_analitica/cuenta_contable (sin %).
+-- 1) `vw_pl_reporte_pg_lite`: recomendada para Looker (P&L general + avance anual, menor peso).
+-- 2) `vw_pl_reporte_detalle_lite`: recomendada para detalle analítico/contable (menor peso).
+-- 3) Usa `vw_pl_reporte_pg` / `vw_pl_reporte_detalle` solo si necesitas todas las columnas.
 -- Nota: se agregó fallback sin agencia para evitar % nulos cuando no existe match exacto de agencia en ingresos.
 -- Si conectas `vw_pl_reporte_pg` (tabla por `partida_general`), tendrás participación y
 -- avance anual listos (incluye Ppto_Anual_* y Avance_*), y además 100% en INGRESOS.
