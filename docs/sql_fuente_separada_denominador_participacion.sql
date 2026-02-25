@@ -327,6 +327,15 @@ SELECT
   COALESCE(vd.venta_real_mes_usd, vds.venta_real_mes_usd_sa) AS Venta_Real_Mes_USD_Denom,
   COALESCE(vd.venta_ppto_mes_usd, vds.venta_ppto_mes_usd_sa) AS Venta_Ppto_Mes_USD_Denom,
 
+  SUM(COALESCE(vd.venta_real_mes_usd, vds.venta_real_mes_usd_sa)) OVER (
+    PARTITION BY m.division, m.unidad_de_negocio, m.region, m.agencia, m.anio
+    ORDER BY m.mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  ) AS Venta_Real_YTD_USD_Denom,
+  SUM(COALESCE(vd.venta_ppto_mes_usd, vds.venta_ppto_mes_usd_sa)) OVER (
+    PARTITION BY m.division, m.unidad_de_negocio, m.region, m.agencia, m.anio
+    ORDER BY m.mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  ) AS Venta_Ppto_YTD_USD_Denom,
+
   SAFE_DIVIDE(
     m.ppto_mes_usd,
     NULLIF(COALESCE(vd.venta_ppto_mes_usd, vds.venta_ppto_mes_usd_sa), 0)
@@ -334,7 +343,34 @@ SELECT
   SAFE_DIVIDE(
     m.real_mes_usd,
     NULLIF(COALESCE(vd.venta_real_mes_usd, vds.venta_real_mes_usd_sa), 0)
-  ) AS Pct_Real_vs_IOS_Mes_USD
+  ) AS Pct_Real_vs_IOS_Mes_USD,
+
+  SAFE_DIVIDE(
+    SUM(m.ppto_mes_usd) OVER (
+      PARTITION BY m.partida_general, m.division, m.unidad_de_negocio, m.region, m.agencia, m.anio
+      ORDER BY m.mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ),
+    NULLIF(
+      SUM(COALESCE(vd.venta_ppto_mes_usd, vds.venta_ppto_mes_usd_sa)) OVER (
+        PARTITION BY m.division, m.unidad_de_negocio, m.region, m.agencia, m.anio
+        ORDER BY m.mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+      ),
+      0
+    )
+  ) AS Pct_Ppto_vs_IOS_YTD_USD,
+  SAFE_DIVIDE(
+    SUM(m.real_mes_usd) OVER (
+      PARTITION BY m.partida_general, m.division, m.unidad_de_negocio, m.region, m.agencia, m.anio
+      ORDER BY m.mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ),
+    NULLIF(
+      SUM(COALESCE(vd.venta_real_mes_usd, vds.venta_real_mes_usd_sa)) OVER (
+        PARTITION BY m.division, m.unidad_de_negocio, m.region, m.agencia, m.anio
+        ORDER BY m.mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+      ),
+      0
+    )
+  ) AS Pct_Real_vs_IOS_YTD_USD
 
 FROM merged_mes m
 LEFT JOIN ppto_anual pa

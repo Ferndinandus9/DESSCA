@@ -308,3 +308,15 @@ con lo cual baja el número de columnas y operaciones ventana que el conector de
 Esto ayuda a disminuir errores de recursos, aunque si el volumen por filtros sigue alto,
 la recomendación adicional es materializar la vista en tabla y consultar esa tabla en Looker.
 
+## Nuevos campos para % acumulado (YTD) sobre ventas
+
+La vista ahora incluye denominadores acumulados en USD para participación YTD:
+- `Venta_Real_YTD_USD_Denom`
+- `Venta_Ppto_YTD_USD_Denom`
+
+Y también los porcentajes acumulados listos para usar:
+- `Pct_Real_vs_IOS_YTD_USD`
+- `Pct_Ppto_vs_IOS_YTD_USD`
+
+Con esto puedes mostrar % acumulado sin tener que construir ventanas en Looker Studio.
+
