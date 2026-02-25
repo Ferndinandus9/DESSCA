@@ -280,8 +280,6 @@ las demás partidas quedarán en `NULL` (tal como en tu captura).
 Para evitarlo, la vista simplificada ahora expone campos ya calculados por fila:
 - `Pct_Ppto_vs_IOS_Mes_USD`
 - `Pct_Real_vs_IOS_Mes_USD`
-- `Pct_Ppto_vs_IOS_Mes_SOL`
-- `Pct_Real_vs_IOS_Mes_SOL`
 
 Estos campos dividen cada partida entre el denominador de ventas del mismo contexto de filtros
 (`anio, mes, division, unidad_de_negocio, region, agencia`) con fallback sin agencia.
@@ -301,7 +299,7 @@ Este era el origen de la diferencia entre montos correctos y porcentajes distors
 
 ## Optimización aplicada: vista solo USD
 
-Para reducir carga en Looker Studio, la vista `vw_pl_reporte_pg_simple_2026` quedó en **solo USD**.
+Para reducir carga en Looker Studio, el modelo principal quedó materializado en `tbl_pl_reporte_pg_simple_2026` y en **solo USD**.
 Se retiraron del SQL los campos y cálculos en SOL (mensual, YTD, anual, denominadores y %),
 con lo cual baja el número de columnas y operaciones ventana que el conector debe procesar.
 
@@ -319,4 +317,14 @@ Y también los porcentajes acumulados listos para usar:
 - `Pct_Ppto_vs_IOS_YTD_USD`
 
 Con esto puedes mostrar % acumulado sin tener que construir ventanas en Looker Studio.
+
+## Materialización recomendada en tablas (no solo vista)
+
+Se propone trabajar con tablas materializadas para mejorar estabilidad en Looker Studio:
+- `tbl_pl_reporte_pg_simple_2026` (resumen por `partida_general`, con porcentajes y denominadores).
+- `tbl_pl_reporte_detalle_2026` (detalle por `partida_analitica` + `cuenta_contable`, sin porcentajes).
+
+**¿Por qué tabla?**
+Porque Looker consulta resultados ya precomputados y evita recalcular toda la lógica (cascadas,
+ventanas, densificación) en cada render. Esto reduce errores de recursos y tiempos de carga.
 
