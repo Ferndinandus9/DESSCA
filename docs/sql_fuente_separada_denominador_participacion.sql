@@ -9,12 +9,12 @@
 --      SAFE_DIVIDE(SUM(Real_Mes_USD), SUM(Venta_Real_Mes_USD_Denom))
 --
 -- Nota:
--- Ajusta `project.dataset` por tus nombres reales.
+-- Implementado para tu entorno: `data-warehouse-445921.pruebas_tpp`.
 
 -- ==========================================================
 -- VISTA 1: BASE DE REPORTE (NUMERADOR)
 -- ==========================================================
-CREATE OR REPLACE VIEW `project.dataset.vw_pl_base_reporte` AS
+CREATE OR REPLACE VIEW `data-warehouse-445921.pruebas_tpp.vw_pl_base_reporte` AS
 WITH
 base_sofia AS (
   SELECT
@@ -284,7 +284,7 @@ FROM densificada;
 -- ==========================================================
 -- VISTA 2: DENOMINADOR SEPARADO (VENTAS MENSUALES)
 -- ==========================================================
-CREATE OR REPLACE VIEW `project.dataset.vw_pl_denominador_ventas_mes` AS
+CREATE OR REPLACE VIEW `data-warehouse-445921.pruebas_tpp.vw_pl_denominador_ventas_mes` AS
 SELECT
   anio,
   mes,
@@ -296,7 +296,7 @@ SELECT
   SUM(Real_Mes_SOL) AS Venta_Real_Mes_SOL_Denom,
   SUM(Ppto_Mes_USD) AS Venta_Ppto_Mes_USD_Denom,
   SUM(Ppto_Mes_SOL) AS Venta_Ppto_Mes_SOL_Denom
-FROM `project.dataset.vw_pl_base_reporte`
+FROM `data-warehouse-445921.pruebas_tpp.vw_pl_base_reporte`
 WHERE partida_general = 'INGRESOS DE LA EXPLOTACION'
 GROUP BY 1,2,3,4,5,6;
 
@@ -304,15 +304,15 @@ GROUP BY 1,2,3,4,5,6;
 -- ==========================================================
 -- VISTA 3 (OPCIONAL): DATASET FINAL YA UNIDO
 -- ==========================================================
-CREATE OR REPLACE VIEW `project.dataset.vw_pl_reporte_con_denominador` AS
+CREATE OR REPLACE VIEW `data-warehouse-445921.pruebas_tpp.vw_pl_reporte_con_denominador` AS
 SELECT
   b.*,
   d.Venta_Real_Mes_USD_Denom,
   d.Venta_Real_Mes_SOL_Denom,
   d.Venta_Ppto_Mes_USD_Denom,
   d.Venta_Ppto_Mes_SOL_Denom
-FROM `project.dataset.vw_pl_base_reporte` b
-LEFT JOIN `project.dataset.vw_pl_denominador_ventas_mes` d
+FROM `data-warehouse-445921.pruebas_tpp.vw_pl_base_reporte` b
+LEFT JOIN `data-warehouse-445921.pruebas_tpp.vw_pl_denominador_ventas_mes` d
   ON  d.anio              = b.anio
   AND d.mes               = b.mes
   AND d.division          = b.division
@@ -327,11 +327,11 @@ LEFT JOIN `project.dataset.vw_pl_denominador_ventas_mes` d
 -- % Participación Real Mes (USD)
 -- SAFE_DIVIDE(SUM(Real_Mes_USD), SUM(Venta_Real_Mes_USD_Denom))
 --
--- % Participación Ppto Mes (USD)
--- SAFE_DIVIDE(SUM(Ppto_Mes_USD), SUM(Venta_Ppto_Mes_USD_Denom))
---
 -- % Participación Real Mes (SOL)
 -- SAFE_DIVIDE(SUM(Real_Mes_SOL), SUM(Venta_Real_Mes_SOL_Denom))
+--
+-- % Participación Ppto Mes (USD)
+-- SAFE_DIVIDE(SUM(Ppto_Mes_USD), SUM(Venta_Ppto_Mes_USD_Denom))
 --
 -- % Participación Ppto Mes (SOL)
 -- SAFE_DIVIDE(SUM(Ppto_Mes_SOL), SUM(Venta_Ppto_Mes_SOL_Denom))
