@@ -349,9 +349,55 @@ LEFT JOIN `data-warehouse-445921.pruebas_tpp.vw_pl_denominador_ventas_mes` d
   AND d.agencia           = b.agencia;
 
 
+
+
+-- ==========================================================
+-- VISTA 4 (RECOMENDADA PARA TABLA POR PARTIDA_GENERAL)
+-- Evita multiplicación del denominador al agrupar en Looker.
+-- ==========================================================
+CREATE OR REPLACE VIEW `data-warehouse-445921.pruebas_tpp.vw_pl_reporte_pg` AS
+SELECT
+  b.partida_general,
+  b.division,
+  b.unidad_de_negocio,
+  b.region,
+  b.agencia,
+  b.anio,
+  b.mes,
+  b.periodo_mes,
+  b.mes_corte,
+  SUM(b.Real_Mes_USD) AS Real_Mes_USD,
+  SUM(b.Real_Mes_SOL) AS Real_Mes_SOL,
+  SUM(b.Ppto_Mes_USD) AS Ppto_Mes_USD,
+  SUM(b.Ppto_Mes_SOL) AS Ppto_Mes_SOL,
+  SUM(b.Real_YTD_USD) AS Real_YTD_USD,
+  SUM(b.Real_YTD_SOL) AS Real_YTD_SOL,
+  SUM(b.Ppto_YTD_USD) AS Ppto_YTD_USD,
+  SUM(b.Ppto_YTD_SOL) AS Ppto_YTD_SOL,
+  MAX(d.Venta_Real_Mes_USD_Denom) AS Venta_Real_Mes_USD_Denom,
+  MAX(d.Venta_Real_Mes_SOL_Denom) AS Venta_Real_Mes_SOL_Denom,
+  MAX(d.Venta_Ppto_Mes_USD_Denom) AS Venta_Ppto_Mes_USD_Denom,
+  MAX(d.Venta_Ppto_Mes_SOL_Denom) AS Venta_Ppto_Mes_SOL_Denom,
+  MAX(d.Venta_Real_YTD_USD_Denom) AS Venta_Real_YTD_USD_Denom,
+  MAX(d.Venta_Real_YTD_SOL_Denom) AS Venta_Real_YTD_SOL_Denom,
+  MAX(d.Venta_Ppto_YTD_USD_Denom) AS Venta_Ppto_YTD_USD_Denom,
+  MAX(d.Venta_Ppto_YTD_SOL_Denom) AS Venta_Ppto_YTD_SOL_Denom
+FROM `data-warehouse-445921.pruebas_tpp.vw_pl_base_reporte` b
+LEFT JOIN `data-warehouse-445921.pruebas_tpp.vw_pl_denominador_ventas_mes` d
+  ON  d.anio              = b.anio
+  AND d.mes               = b.mes
+  AND d.division          = b.division
+  AND d.unidad_de_negocio = b.unidad_de_negocio
+  AND d.region            = b.region
+  AND d.agencia           = b.agencia
+GROUP BY 1,2,3,4,5,6,7,8,9;
+
 -- ==========================================================
 -- USO EN LOOKER STUDIO (campo calculado)
 -- ==========================================================
+-- Si conectas `vw_pl_reporte_pg` (tabla por `partida_general`), estas fórmulas devolverán
+-- 100% en INGRESOS DE LA EXPLOTACION para el contexto filtrado.
+--
 -- % Participación Real Mes (USD)
 -- SAFE_DIVIDE(SUM(Real_Mes_USD), SUM(Venta_Real_Mes_USD_Denom))
 --
