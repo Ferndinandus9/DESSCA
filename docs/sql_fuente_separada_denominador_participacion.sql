@@ -451,9 +451,51 @@ LEFT JOIN `data-warehouse-445921.pruebas_tpp.vw_pl_denominador_ventas_mes` d
   AND d.agencia           = b.agencia
 GROUP BY 1,2,3,4,5,6,7,8,9;
 
+
+
+-- ==========================================================
+-- VISTA 5 (DETALLE ANALÍTICO/CONTABLE PARA COMPARATIVO)
+-- Pensada para filtros por partida_analitica y cuenta_contable
+-- sin necesidad de porcentajes.
+-- ==========================================================
+CREATE OR REPLACE VIEW `data-warehouse-445921.pruebas_tpp.vw_pl_reporte_detalle` AS
+SELECT
+  b.partida_general,
+  b.partida_analitica,
+  b.cuenta_contable,
+  b.division,
+  b.unidad_de_negocio,
+  b.region,
+  b.agencia,
+  b.anio,
+  b.mes,
+  b.periodo_mes,
+  b.mes_corte,
+  SUM(b.Real_Mes_USD) AS Real_Mes_USD,
+  SUM(b.Real_Mes_SOL) AS Real_Mes_SOL,
+  SUM(b.Ppto_Mes_USD) AS Ppto_Mes_USD,
+  SUM(b.Ppto_Mes_SOL) AS Ppto_Mes_SOL,
+  SUM(b.Real_YTD_USD) AS Real_YTD_USD,
+  SUM(b.Real_YTD_SOL) AS Real_YTD_SOL,
+  SUM(b.Ppto_YTD_USD) AS Ppto_YTD_USD,
+  SUM(b.Ppto_YTD_SOL) AS Ppto_YTD_SOL,
+  SUM(b.Ppto_Anual_USD) AS Ppto_Anual_USD,
+  SUM(b.Ppto_Anual_SOL) AS Ppto_Anual_SOL,
+  SUM(b.Real_Mes_USD) - SUM(b.Ppto_Mes_USD) AS Var_Mes_USD,
+  SUM(b.Real_Mes_SOL) - SUM(b.Ppto_Mes_SOL) AS Var_Mes_SOL,
+  SUM(b.Real_YTD_USD) - SUM(b.Ppto_YTD_USD) AS Var_YTD_USD,
+  SUM(b.Real_YTD_SOL) - SUM(b.Ppto_YTD_SOL) AS Var_YTD_SOL,
+  SUM(b.Real_YTD_USD) - SUM(b.Ppto_Anual_USD) AS Gap_Real_YTD_vs_Ppto_Anual_USD,
+  SUM(b.Real_YTD_SOL) - SUM(b.Ppto_Anual_SOL) AS Gap_Real_YTD_vs_Ppto_Anual_SOL
+FROM `data-warehouse-445921.pruebas_tpp.vw_pl_base_reporte` b
+GROUP BY 1,2,3,4,5,6,7,8,9,10,11;
+
 -- ==========================================================
 -- USO EN LOOKER STUDIO (campo calculado)
 -- ==========================================================
+-- Uso recomendado de vistas:
+-- 1) `vw_pl_reporte_pg`: vista agregada para P&L por partida_general y % participación.
+-- 2) `vw_pl_reporte_detalle`: vista para comparativos por partida_analitica/cuenta_contable (sin %).
 -- Si conectas `vw_pl_reporte_pg` (tabla por `partida_general`), tendrás participación y
 -- avance anual listos (incluye Ppto_Anual_* y Avance_*), y además 100% en INGRESOS.
 --
