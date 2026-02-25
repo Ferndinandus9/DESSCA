@@ -277,12 +277,32 @@ SELECT
   real_mes_usd AS Real_Mes_USD,
   real_mes_sol AS Real_Mes_SOL,
   ppto_mes_usd AS Ppto_Mes_USD,
-  ppto_mes_sol AS Ppto_Mes_SOL
+  ppto_mes_sol AS Ppto_Mes_SOL,
+  SUM(real_mes_usd) OVER (
+    PARTITION BY partida_general, partida_analitica, cuenta_contable,
+      division, unidad_de_negocio, region, agencia, anio
+    ORDER BY mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  ) AS Real_YTD_USD,
+  SUM(real_mes_sol) OVER (
+    PARTITION BY partida_general, partida_analitica, cuenta_contable,
+      division, unidad_de_negocio, region, agencia, anio
+    ORDER BY mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  ) AS Real_YTD_SOL,
+  SUM(ppto_mes_usd) OVER (
+    PARTITION BY partida_general, partida_analitica, cuenta_contable,
+      division, unidad_de_negocio, region, agencia, anio
+    ORDER BY mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  ) AS Ppto_YTD_USD,
+  SUM(ppto_mes_sol) OVER (
+    PARTITION BY partida_general, partida_analitica, cuenta_contable,
+      division, unidad_de_negocio, region, agencia, anio
+    ORDER BY mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  ) AS Ppto_YTD_SOL
 FROM densificada;
 
 
 -- ==========================================================
--- VISTA 2: DENOMINADOR SEPARADO (VENTAS MENSUALES)
+-- VISTA 2: DENOMINADOR SEPARADO (VENTAS MES + YTD)
 -- ==========================================================
 CREATE OR REPLACE VIEW `data-warehouse-445921.pruebas_tpp.vw_pl_denominador_ventas_mes` AS
 SELECT
@@ -295,7 +315,11 @@ SELECT
   SUM(Real_Mes_USD) AS Venta_Real_Mes_USD_Denom,
   SUM(Real_Mes_SOL) AS Venta_Real_Mes_SOL_Denom,
   SUM(Ppto_Mes_USD) AS Venta_Ppto_Mes_USD_Denom,
-  SUM(Ppto_Mes_SOL) AS Venta_Ppto_Mes_SOL_Denom
+  SUM(Ppto_Mes_SOL) AS Venta_Ppto_Mes_SOL_Denom,
+  SUM(Real_YTD_USD) AS Venta_Real_YTD_USD_Denom,
+  SUM(Real_YTD_SOL) AS Venta_Real_YTD_SOL_Denom,
+  SUM(Ppto_YTD_USD) AS Venta_Ppto_YTD_USD_Denom,
+  SUM(Ppto_YTD_SOL) AS Venta_Ppto_YTD_SOL_Denom
 FROM `data-warehouse-445921.pruebas_tpp.vw_pl_base_reporte`
 WHERE partida_general = 'INGRESOS DE LA EXPLOTACION'
 GROUP BY 1,2,3,4,5,6;
@@ -310,7 +334,11 @@ SELECT
   d.Venta_Real_Mes_USD_Denom,
   d.Venta_Real_Mes_SOL_Denom,
   d.Venta_Ppto_Mes_USD_Denom,
-  d.Venta_Ppto_Mes_SOL_Denom
+  d.Venta_Ppto_Mes_SOL_Denom,
+  d.Venta_Real_YTD_USD_Denom,
+  d.Venta_Real_YTD_SOL_Denom,
+  d.Venta_Ppto_YTD_USD_Denom,
+  d.Venta_Ppto_YTD_SOL_Denom
 FROM `data-warehouse-445921.pruebas_tpp.vw_pl_base_reporte` b
 LEFT JOIN `data-warehouse-445921.pruebas_tpp.vw_pl_denominador_ventas_mes` d
   ON  d.anio              = b.anio
@@ -335,3 +363,16 @@ LEFT JOIN `data-warehouse-445921.pruebas_tpp.vw_pl_denominador_ventas_mes` d
 --
 -- % Participación Ppto Mes (SOL)
 -- SAFE_DIVIDE(SUM(Ppto_Mes_SOL), SUM(Venta_Ppto_Mes_SOL_Denom))
+
+--
+-- % Participación Real YTD (USD)
+-- SAFE_DIVIDE(SUM(Real_YTD_USD), SUM(Venta_Real_YTD_USD_Denom))
+--
+-- % Participación Real YTD (SOL)
+-- SAFE_DIVIDE(SUM(Real_YTD_SOL), SUM(Venta_Real_YTD_SOL_Denom))
+--
+-- % Participación Ppto YTD (USD)
+-- SAFE_DIVIDE(SUM(Ppto_YTD_USD), SUM(Venta_Ppto_YTD_USD_Denom))
+--
+-- % Participación Ppto YTD (SOL)
+-- SAFE_DIVIDE(SUM(Ppto_YTD_SOL), SUM(Venta_Ppto_YTD_SOL_Denom))
