@@ -449,12 +449,16 @@ SELECT
   b.agencia,
   b.anio,
   b.mes,
+  b.mes AS Mes_Orden,
+  FORMAT('%04d-%02d', b.anio, b.mes) AS Mes_Clave,
   b.periodo_mes,
   b.mes_corte,
   SUM(b.Real_Mes_USD) AS Real_Mes_USD,
   SUM(b.Real_Mes_SOL) AS Real_Mes_SOL,
   SUM(b.Ppto_Mes_USD) AS Ppto_Mes_USD,
   SUM(b.Ppto_Mes_SOL) AS Ppto_Mes_SOL,
+  SUM(b.Real_Mes_USD) - SUM(b.Ppto_Mes_USD) AS Var_Mes_USD,
+  SUM(b.Real_Mes_SOL) - SUM(b.Ppto_Mes_SOL) AS Var_Mes_SOL,
   SUM(b.Real_YTD_USD) AS Real_YTD_USD,
   SUM(b.Real_YTD_SOL) AS Real_YTD_SOL,
   SUM(b.Ppto_YTD_USD) AS Ppto_YTD_USD,
@@ -487,7 +491,7 @@ LEFT JOIN `data-warehouse-445921.pruebas_tpp.vw_pl_denominador_ventas_mes_sin_ag
   AND ds.division          = b.division
   AND ds.unidad_de_negocio = b.unidad_de_negocio
   AND ds.region            = b.region
-GROUP BY 1,2,3,4,5,6,7,8,9;
+GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13;
 
 
 
@@ -507,26 +511,28 @@ SELECT
   b.agencia,
   b.anio,
   b.mes,
+  b.mes AS Mes_Orden,
+  FORMAT('%04d-%02d', b.anio, b.mes) AS Mes_Clave,
   b.periodo_mes,
   b.mes_corte,
   SUM(b.Real_Mes_USD) AS Real_Mes_USD,
   SUM(b.Real_Mes_SOL) AS Real_Mes_SOL,
   SUM(b.Ppto_Mes_USD) AS Ppto_Mes_USD,
   SUM(b.Ppto_Mes_SOL) AS Ppto_Mes_SOL,
+  SUM(b.Real_Mes_USD) - SUM(b.Ppto_Mes_USD) AS Var_Mes_USD,
+  SUM(b.Real_Mes_SOL) - SUM(b.Ppto_Mes_SOL) AS Var_Mes_SOL,
   SUM(b.Real_YTD_USD) AS Real_YTD_USD,
   SUM(b.Real_YTD_SOL) AS Real_YTD_SOL,
   SUM(b.Ppto_YTD_USD) AS Ppto_YTD_USD,
   SUM(b.Ppto_YTD_SOL) AS Ppto_YTD_SOL,
   SUM(b.Ppto_Anual_USD) AS Ppto_Anual_USD,
   SUM(b.Ppto_Anual_SOL) AS Ppto_Anual_SOL,
-  SUM(b.Real_Mes_USD) - SUM(b.Ppto_Mes_USD) AS Var_Mes_USD,
-  SUM(b.Real_Mes_SOL) - SUM(b.Ppto_Mes_SOL) AS Var_Mes_SOL,
   SUM(b.Real_YTD_USD) - SUM(b.Ppto_YTD_USD) AS Var_YTD_USD,
   SUM(b.Real_YTD_SOL) - SUM(b.Ppto_YTD_SOL) AS Var_YTD_SOL,
   SUM(b.Real_YTD_USD) - SUM(b.Ppto_Anual_USD) AS Gap_Real_YTD_vs_Ppto_Anual_USD,
   SUM(b.Real_YTD_SOL) - SUM(b.Ppto_Anual_SOL) AS Gap_Real_YTD_vs_Ppto_Anual_SOL
 FROM `data-warehouse-445921.pruebas_tpp.vw_pl_base_reporte` b
-GROUP BY 1,2,3,4,5,6,7,8,9,10,11;
+GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13;
 
 
 
@@ -543,9 +549,12 @@ SELECT
   agencia,
   anio,
   mes,
+  Mes_Orden,
+  Mes_Clave,
   periodo_mes,
   Ppto_Mes_USD,
   Real_Mes_USD,
+  Var_Mes_USD,
   Ppto_YTD_USD,
   Real_YTD_USD,
   Ppto_Anual_USD,
@@ -572,6 +581,8 @@ SELECT
   agencia,
   anio,
   mes,
+  Mes_Orden,
+  Mes_Clave,
   periodo_mes,
   Ppto_Mes_USD,
   Real_Mes_USD,
@@ -603,6 +614,16 @@ FROM `data-warehouse-445921.pruebas_tpp.vw_pl_reporte_detalle`;
 -- Nota: se agregó fallback sin agencia para evitar % nulos cuando no existe match exacto de agencia en ingresos.
 -- Si conectas `vw_pl_reporte_pg` (tabla por `partida_general`), tendrás participación y
 -- avance anual listos (incluye Ppto_Anual_* y Avance_*), y además 100% en INGRESOS.
+--
+-- PARAMETRO SUGERIDO EN LOOKER (selector de métrica mensual)
+-- 1) Crea parámetro: p_metrica_mensual (Texto) con valores: PPTO, REAL, VAR
+-- 2) Campo calculado ejemplo (USD):
+-- CASE
+--   WHEN p_metrica_mensual = 'PPTO' THEN SUM(Ppto_Mes_USD)
+--   WHEN p_metrica_mensual = 'REAL' THEN SUM(Real_Mes_USD)
+--   WHEN p_metrica_mensual = 'VAR'  THEN SUM(Var_Mes_USD)
+-- END
+-- 3) Para ordenar meses en tablas dinámicas usa Mes_Orden o Mes_Clave (YYYY-MM).
 --
 -- % Participación Real Mes (USD)
 -- SAFE_DIVIDE(SUM(Real_Mes_USD), SUM(Venta_Real_Mes_USD_Denom))
