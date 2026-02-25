@@ -365,20 +365,46 @@ WHERE partida_general = 'INGRESOS DE LA EXPLOTACION'
 GROUP BY 1,2,3,4,5,6;
 
 
+
+
+-- ==========================================================
+-- VISTA 2B: DENOMINADOR DE RESPALDO (SIN AGENCIA)
+-- Evita descalce de porcentajes cuando una partida no matchea
+-- exactamente la agencia de INGRESOS DE LA EXPLOTACION.
+-- ==========================================================
+CREATE OR REPLACE VIEW `data-warehouse-445921.pruebas_tpp.vw_pl_denominador_ventas_mes_sin_agencia` AS
+SELECT
+  anio,
+  mes,
+  division,
+  unidad_de_negocio,
+  region,
+  SUM(Real_Mes_USD) AS Venta_Real_Mes_USD_Denom_SA,
+  SUM(Real_Mes_SOL) AS Venta_Real_Mes_SOL_Denom_SA,
+  SUM(Ppto_Mes_USD) AS Venta_Ppto_Mes_USD_Denom_SA,
+  SUM(Ppto_Mes_SOL) AS Venta_Ppto_Mes_SOL_Denom_SA,
+  SUM(Real_YTD_USD) AS Venta_Real_YTD_USD_Denom_SA,
+  SUM(Real_YTD_SOL) AS Venta_Real_YTD_SOL_Denom_SA,
+  SUM(Ppto_YTD_USD) AS Venta_Ppto_YTD_USD_Denom_SA,
+  SUM(Ppto_YTD_SOL) AS Venta_Ppto_YTD_SOL_Denom_SA
+FROM `data-warehouse-445921.pruebas_tpp.vw_pl_base_reporte`
+WHERE partida_general = 'INGRESOS DE LA EXPLOTACION'
+GROUP BY 1,2,3,4,5;
+
 -- ==========================================================
 -- VISTA 3 (OPCIONAL): DATASET FINAL YA UNIDO
 -- ==========================================================
 CREATE OR REPLACE VIEW `data-warehouse-445921.pruebas_tpp.vw_pl_reporte_con_denominador` AS
 SELECT
   b.*,
-  d.Venta_Real_Mes_USD_Denom,
-  d.Venta_Real_Mes_SOL_Denom,
-  d.Venta_Ppto_Mes_USD_Denom,
-  d.Venta_Ppto_Mes_SOL_Denom,
-  d.Venta_Real_YTD_USD_Denom,
-  d.Venta_Real_YTD_SOL_Denom,
-  d.Venta_Ppto_YTD_USD_Denom,
-  d.Venta_Ppto_YTD_SOL_Denom
+  COALESCE(d.Venta_Real_Mes_USD_Denom, ds.Venta_Real_Mes_USD_Denom_SA) AS Venta_Real_Mes_USD_Denom,
+  COALESCE(d.Venta_Real_Mes_SOL_Denom, ds.Venta_Real_Mes_SOL_Denom_SA) AS Venta_Real_Mes_SOL_Denom,
+  COALESCE(d.Venta_Ppto_Mes_USD_Denom, ds.Venta_Ppto_Mes_USD_Denom_SA) AS Venta_Ppto_Mes_USD_Denom,
+  COALESCE(d.Venta_Ppto_Mes_SOL_Denom, ds.Venta_Ppto_Mes_SOL_Denom_SA) AS Venta_Ppto_Mes_SOL_Denom,
+  COALESCE(d.Venta_Real_YTD_USD_Denom, ds.Venta_Real_YTD_USD_Denom_SA) AS Venta_Real_YTD_USD_Denom,
+  COALESCE(d.Venta_Real_YTD_SOL_Denom, ds.Venta_Real_YTD_SOL_Denom_SA) AS Venta_Real_YTD_SOL_Denom,
+  COALESCE(d.Venta_Ppto_YTD_USD_Denom, ds.Venta_Ppto_YTD_USD_Denom_SA) AS Venta_Ppto_YTD_USD_Denom,
+  COALESCE(d.Venta_Ppto_YTD_SOL_Denom, ds.Venta_Ppto_YTD_SOL_Denom_SA) AS Venta_Ppto_YTD_SOL_Denom
 FROM `data-warehouse-445921.pruebas_tpp.vw_pl_base_reporte` b
 LEFT JOIN `data-warehouse-445921.pruebas_tpp.vw_pl_denominador_ventas_mes` d
   ON  d.anio              = b.anio
@@ -386,7 +412,13 @@ LEFT JOIN `data-warehouse-445921.pruebas_tpp.vw_pl_denominador_ventas_mes` d
   AND d.division          = b.division
   AND d.unidad_de_negocio = b.unidad_de_negocio
   AND d.region            = b.region
-  AND d.agencia           = b.agencia;
+  AND d.agencia           = b.agencia
+LEFT JOIN `data-warehouse-445921.pruebas_tpp.vw_pl_denominador_ventas_mes_sin_agencia` ds
+  ON  ds.anio              = b.anio
+  AND ds.mes               = b.mes
+  AND ds.division          = b.division
+  AND ds.unidad_de_negocio = b.unidad_de_negocio
+  AND ds.region            = b.region;
 
 
 -- ==========================================================
@@ -417,14 +449,14 @@ SELECT
   SAFE_DIVIDE(SUM(b.Ppto_YTD_USD), SUM(b.Ppto_Anual_USD)) AS Avance_Ppto_vs_Ppto_Anual_USD,
   SAFE_DIVIDE(SUM(b.Real_YTD_SOL), SUM(b.Ppto_Anual_SOL)) AS Avance_Real_vs_Ppto_Anual_SOL,
   SAFE_DIVIDE(SUM(b.Ppto_YTD_SOL), SUM(b.Ppto_Anual_SOL)) AS Avance_Ppto_vs_Ppto_Anual_SOL,
-  MAX(d.Venta_Real_Mes_USD_Denom) AS Venta_Real_Mes_USD_Denom,
-  MAX(d.Venta_Real_Mes_SOL_Denom) AS Venta_Real_Mes_SOL_Denom,
-  MAX(d.Venta_Ppto_Mes_USD_Denom) AS Venta_Ppto_Mes_USD_Denom,
-  MAX(d.Venta_Ppto_Mes_SOL_Denom) AS Venta_Ppto_Mes_SOL_Denom,
-  MAX(d.Venta_Real_YTD_USD_Denom) AS Venta_Real_YTD_USD_Denom,
-  MAX(d.Venta_Real_YTD_SOL_Denom) AS Venta_Real_YTD_SOL_Denom,
-  MAX(d.Venta_Ppto_YTD_USD_Denom) AS Venta_Ppto_YTD_USD_Denom,
-  MAX(d.Venta_Ppto_YTD_SOL_Denom) AS Venta_Ppto_YTD_SOL_Denom
+  MAX(COALESCE(d.Venta_Real_Mes_USD_Denom, ds.Venta_Real_Mes_USD_Denom_SA)) AS Venta_Real_Mes_USD_Denom,
+  MAX(COALESCE(d.Venta_Real_Mes_SOL_Denom, ds.Venta_Real_Mes_SOL_Denom_SA)) AS Venta_Real_Mes_SOL_Denom,
+  MAX(COALESCE(d.Venta_Ppto_Mes_USD_Denom, ds.Venta_Ppto_Mes_USD_Denom_SA)) AS Venta_Ppto_Mes_USD_Denom,
+  MAX(COALESCE(d.Venta_Ppto_Mes_SOL_Denom, ds.Venta_Ppto_Mes_SOL_Denom_SA)) AS Venta_Ppto_Mes_SOL_Denom,
+  MAX(COALESCE(d.Venta_Real_YTD_USD_Denom, ds.Venta_Real_YTD_USD_Denom_SA)) AS Venta_Real_YTD_USD_Denom,
+  MAX(COALESCE(d.Venta_Real_YTD_SOL_Denom, ds.Venta_Real_YTD_SOL_Denom_SA)) AS Venta_Real_YTD_SOL_Denom,
+  MAX(COALESCE(d.Venta_Ppto_YTD_USD_Denom, ds.Venta_Ppto_YTD_USD_Denom_SA)) AS Venta_Ppto_YTD_USD_Denom,
+  MAX(COALESCE(d.Venta_Ppto_YTD_SOL_Denom, ds.Venta_Ppto_YTD_SOL_Denom_SA)) AS Venta_Ppto_YTD_SOL_Denom
 FROM `data-warehouse-445921.pruebas_tpp.vw_pl_base_reporte` b
 LEFT JOIN `data-warehouse-445921.pruebas_tpp.vw_pl_denominador_ventas_mes` d
   ON  d.anio              = b.anio
@@ -433,6 +465,12 @@ LEFT JOIN `data-warehouse-445921.pruebas_tpp.vw_pl_denominador_ventas_mes` d
   AND d.unidad_de_negocio = b.unidad_de_negocio
   AND d.region            = b.region
   AND d.agencia           = b.agencia
+LEFT JOIN `data-warehouse-445921.pruebas_tpp.vw_pl_denominador_ventas_mes_sin_agencia` ds
+  ON  ds.anio              = b.anio
+  AND ds.mes               = b.mes
+  AND ds.division          = b.division
+  AND ds.unidad_de_negocio = b.unidad_de_negocio
+  AND ds.region            = b.region
 GROUP BY 1,2,3,4,5,6,7,8,9;
 
 
