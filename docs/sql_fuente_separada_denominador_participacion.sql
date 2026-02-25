@@ -427,6 +427,12 @@ SELECT
   SUM(b.Real_YTD_SOL) AS Real_YTD_SOL,
   SUM(b.Ppto_YTD_USD) AS Ppto_YTD_USD,
   SUM(b.Ppto_YTD_SOL) AS Ppto_YTD_SOL,
+  SUM(b.Ppto_Anual_USD) AS Ppto_Anual_USD,
+  SUM(b.Ppto_Anual_SOL) AS Ppto_Anual_SOL,
+  SAFE_DIVIDE(SUM(b.Real_YTD_USD), SUM(b.Ppto_Anual_USD)) AS Avance_Real_vs_Ppto_Anual_USD,
+  SAFE_DIVIDE(SUM(b.Ppto_YTD_USD), SUM(b.Ppto_Anual_USD)) AS Avance_Ppto_vs_Ppto_Anual_USD,
+  SAFE_DIVIDE(SUM(b.Real_YTD_SOL), SUM(b.Ppto_Anual_SOL)) AS Avance_Real_vs_Ppto_Anual_SOL,
+  SAFE_DIVIDE(SUM(b.Ppto_YTD_SOL), SUM(b.Ppto_Anual_SOL)) AS Avance_Ppto_vs_Ppto_Anual_SOL,
   MAX(d.Venta_Real_Mes_USD_Denom) AS Venta_Real_Mes_USD_Denom,
   MAX(d.Venta_Real_Mes_SOL_Denom) AS Venta_Real_Mes_SOL_Denom,
   MAX(d.Venta_Ppto_Mes_USD_Denom) AS Venta_Ppto_Mes_USD_Denom,
@@ -448,8 +454,8 @@ GROUP BY 1,2,3,4,5,6,7,8,9;
 -- ==========================================================
 -- USO EN LOOKER STUDIO (campo calculado)
 -- ==========================================================
--- Si conectas `vw_pl_reporte_pg` (tabla por `partida_general`), estas fórmulas devolverán
--- 100% en INGRESOS DE LA EXPLOTACION para el contexto filtrado.
+-- Si conectas `vw_pl_reporte_pg` (tabla por `partida_general`), tendrás participación y
+-- avance anual listos (incluye Ppto_Anual_* y Avance_*), y además 100% en INGRESOS.
 --
 -- % Participación Real Mes (USD)
 -- SAFE_DIVIDE(SUM(Real_Mes_USD), SUM(Venta_Real_Mes_USD_Denom))
