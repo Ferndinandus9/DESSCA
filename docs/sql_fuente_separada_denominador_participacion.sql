@@ -211,6 +211,16 @@ ppto_consolidado AS (
   UNION ALL SELECT * FROM p_rai
 ),
 
+ppto_anual AS (
+  SELECT
+    partida_general, partida_analitica, cuenta_contable,
+    division, unidad_de_negocio, region, agencia, anio,
+    SUM(ppto_mes_usd) AS Ppto_Anual_USD,
+    SUM(ppto_mes_sol) AS Ppto_Anual_SOL
+  FROM ppto_consolidado
+  GROUP BY 1,2,3,4,5,6,7,8
+),
+
 mes_corte AS (
   SELECT anio, MAX(mes) AS mes_corte
   FROM real_consolidado
@@ -263,42 +273,85 @@ densificada AS (
     AND p.mes               = m
 )
 SELECT
-  partida_general,
-  partida_analitica,
-  cuenta_contable,
-  division,
-  unidad_de_negocio,
-  region,
-  agencia,
-  anio,
-  mes,
-  periodo_mes,
-  mes_corte,
-  real_mes_usd AS Real_Mes_USD,
-  real_mes_sol AS Real_Mes_SOL,
-  ppto_mes_usd AS Ppto_Mes_USD,
-  ppto_mes_sol AS Ppto_Mes_SOL,
-  SUM(real_mes_usd) OVER (
-    PARTITION BY partida_general, partida_analitica, cuenta_contable,
-      division, unidad_de_negocio, region, agencia, anio
-    ORDER BY mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  d.partida_general,
+  d.partida_analitica,
+  d.cuenta_contable,
+  d.division,
+  d.unidad_de_negocio,
+  d.region,
+  d.agencia,
+  d.anio,
+  d.mes,
+  d.periodo_mes,
+  d.mes_corte,
+  d.real_mes_usd AS Real_Mes_USD,
+  d.real_mes_sol AS Real_Mes_SOL,
+  d.ppto_mes_usd AS Ppto_Mes_USD,
+  d.ppto_mes_sol AS Ppto_Mes_SOL,
+  SUM(d.real_mes_usd) OVER (
+    PARTITION BY d.partida_general, d.partida_analitica, d.cuenta_contable,
+      d.division, d.unidad_de_negocio, d.region, d.agencia, d.anio
+    ORDER BY d.mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
   ) AS Real_YTD_USD,
-  SUM(real_mes_sol) OVER (
-    PARTITION BY partida_general, partida_analitica, cuenta_contable,
-      division, unidad_de_negocio, region, agencia, anio
-    ORDER BY mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  SUM(d.real_mes_sol) OVER (
+    PARTITION BY d.partida_general, d.partida_analitica, d.cuenta_contable,
+      d.division, d.unidad_de_negocio, d.region, d.agencia, d.anio
+    ORDER BY d.mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
   ) AS Real_YTD_SOL,
-  SUM(ppto_mes_usd) OVER (
-    PARTITION BY partida_general, partida_analitica, cuenta_contable,
-      division, unidad_de_negocio, region, agencia, anio
-    ORDER BY mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  SUM(d.ppto_mes_usd) OVER (
+    PARTITION BY d.partida_general, d.partida_analitica, d.cuenta_contable,
+      d.division, d.unidad_de_negocio, d.region, d.agencia, d.anio
+    ORDER BY d.mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
   ) AS Ppto_YTD_USD,
-  SUM(ppto_mes_sol) OVER (
-    PARTITION BY partida_general, partida_analitica, cuenta_contable,
-      division, unidad_de_negocio, region, agencia, anio
-    ORDER BY mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-  ) AS Ppto_YTD_SOL
-FROM densificada;
+  SUM(d.ppto_mes_sol) OVER (
+    PARTITION BY d.partida_general, d.partida_analitica, d.cuenta_contable,
+      d.division, d.unidad_de_negocio, d.region, d.agencia, d.anio
+    ORDER BY d.mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  ) AS Ppto_YTD_SOL,
+  IFNULL(pa.Ppto_Anual_USD, 0) AS Ppto_Anual_USD,
+  IFNULL(pa.Ppto_Anual_SOL, 0) AS Ppto_Anual_SOL,
+  SAFE_DIVIDE(
+    SUM(d.real_mes_usd) OVER (
+      PARTITION BY d.partida_general, d.partida_analitica, d.cuenta_contable,
+        d.division, d.unidad_de_negocio, d.region, d.agencia, d.anio
+      ORDER BY d.mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ),
+    IFNULL(pa.Ppto_Anual_USD, 0)
+  ) AS Avance_Real_vs_Ppto_Anual_USD,
+  SAFE_DIVIDE(
+    SUM(d.ppto_mes_usd) OVER (
+      PARTITION BY d.partida_general, d.partida_analitica, d.cuenta_contable,
+        d.division, d.unidad_de_negocio, d.region, d.agencia, d.anio
+      ORDER BY d.mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ),
+    IFNULL(pa.Ppto_Anual_USD, 0)
+  ) AS Avance_Ppto_vs_Ppto_Anual_USD,
+  SAFE_DIVIDE(
+    SUM(d.real_mes_sol) OVER (
+      PARTITION BY d.partida_general, d.partida_analitica, d.cuenta_contable,
+        d.division, d.unidad_de_negocio, d.region, d.agencia, d.anio
+      ORDER BY d.mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ),
+    IFNULL(pa.Ppto_Anual_SOL, 0)
+  ) AS Avance_Real_vs_Ppto_Anual_SOL,
+  SAFE_DIVIDE(
+    SUM(d.ppto_mes_sol) OVER (
+      PARTITION BY d.partida_general, d.partida_analitica, d.cuenta_contable,
+        d.division, d.unidad_de_negocio, d.region, d.agencia, d.anio
+      ORDER BY d.mes ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ),
+    IFNULL(pa.Ppto_Anual_SOL, 0)
+  ) AS Avance_Ppto_vs_Ppto_Anual_SOL
+FROM densificada d
+LEFT JOIN ppto_anual pa
+  ON  pa.partida_general   = d.partida_general
+  AND pa.partida_analitica = d.partida_analitica
+  AND pa.cuenta_contable   = d.cuenta_contable
+  AND pa.division          = d.division
+  AND pa.unidad_de_negocio = d.unidad_de_negocio
+  AND pa.region            = d.region
+  AND pa.agencia           = d.agencia
+  AND pa.anio              = d.anio;
 
 
 -- ==========================================================
@@ -422,3 +475,16 @@ GROUP BY 1,2,3,4,5,6,7,8,9;
 --
 -- % Participación Ppto YTD (SOL)
 -- SAFE_DIVIDE(SUM(Ppto_YTD_SOL), SUM(Venta_Ppto_YTD_SOL_Denom))
+
+
+-- % Avance Real vs Presupuesto Anual (USD)
+-- SAFE_DIVIDE(SUM(Real_YTD_USD), SUM(Ppto_Anual_USD))
+--
+-- % Avance Ppto Acumulado vs Presupuesto Anual (USD)
+-- SAFE_DIVIDE(SUM(Ppto_YTD_USD), SUM(Ppto_Anual_USD))
+--
+-- % Avance Real vs Presupuesto Anual (SOL)
+-- SAFE_DIVIDE(SUM(Real_YTD_SOL), SUM(Ppto_Anual_SOL))
+--
+-- % Avance Ppto Acumulado vs Presupuesto Anual (SOL)
+-- SAFE_DIVIDE(SUM(Ppto_YTD_SOL), SUM(Ppto_Anual_SOL))
